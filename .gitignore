@@ -1,0 +1,10 @@
+build/
+dist/
+third_party/onnxruntime/
+third_party/stb/
+models/*.onnx
+assets/samples/
+*.zip
+.vs/
+out/
+CMakeUserPresets.json
