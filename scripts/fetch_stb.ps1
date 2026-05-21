@@ -5,13 +5,15 @@ $root = Split-Path -Parent $PSScriptRoot
 $dest = Join-Path $root "third_party\stb"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 
-$target = Join-Path $dest "stb_image.h"
-if (Test-Path $target) {
-    Write-Host "stb_image.h already present"
-    exit 0
+$files = @("stb_image.h", "stb_image_write.h")
+foreach ($f in $files) {
+    $target = Join-Path $dest $f
+    if (Test-Path $target) {
+        Write-Host "$f already present"
+        continue
+    }
+    $url = "https://raw.githubusercontent.com/nothings/stb/master/$f"
+    Write-Host "Downloading $f ..."
+    Invoke-WebRequest -Uri $url -OutFile $target
+    Write-Host "$f saved to $target"
 }
-
-$url = "https://raw.githubusercontent.com/nothings/stb/master/stb_image.h"
-Write-Host "Downloading stb_image.h ..."
-Invoke-WebRequest -Uri $url -OutFile $target
-Write-Host "stb_image.h saved to $target"

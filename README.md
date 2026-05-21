@@ -97,14 +97,20 @@ ONNXRuntime/
 │   └── imagenet_labels.cpp   # 1000-class label table (auto-generated)
 ├── scripts/
 │   ├── fetch_onnxruntime.ps1 # downloads prebuilt ORT CPU 1.20.1
-│   ├── fetch_stb.ps1         # downloads stb_image.h
+│   ├── fetch_stb.ps1         # downloads stb_image.h + stb_image_write.h
 │   ├── fetch_model.ps1       # downloads the EfficientNet-Lite4 ONNX
 │   └── gen_labels.ps1        # regenerates imagenet_labels.cpp
 ├── assets/
 │   └── labels_map.txt        # canonical ImageNet labels (source of truth)
 ├── models/                   # populated by fetch_model.ps1
+├── examples/
+│   └── ui_detector/          # screenshot UI element detection + OCR (MFC GUI)
 └── third_party/              # populated by fetch_* scripts (gitignored)
 ```
+
+## Examples
+
+* [`examples/ui_detector/`](examples/ui_detector) — detect UI elements in a screenshot (OmniParser YOLOv8) and read the text inside each one (PP-OCRv4 cn + en). Ships both a CLI and an MFC desktop GUI. Same `third_party/` is reused, no extra dependencies.
 
 ## Why these choices
 

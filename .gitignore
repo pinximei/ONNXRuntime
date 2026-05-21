@@ -4,6 +4,13 @@ third_party/onnxruntime/
 third_party/stb/
 models/*.onnx
 assets/samples/
+
+# Sub-examples have their own build/models dirs
+examples/*/build/
+examples/*/models/*.onnx
+examples/*/models/*.txt
+examples/*/assets/
+
 *.zip
 .vs/
 out/
