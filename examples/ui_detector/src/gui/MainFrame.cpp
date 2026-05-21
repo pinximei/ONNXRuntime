@@ -11,6 +11,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
     ON_BN_CLICKED(IDC_BTN_OPEN,   &CMainFrame::OnBtnOpen)
     ON_BN_CLICKED(IDC_BTN_RERUN,  &CMainFrame::OnBtnRerun)
     ON_BN_CLICKED(IDC_BTN_EXPORT, &CMainFrame::OnBtnExport)
+    ON_BN_CLICKED(IDC_CHK_SERVER, &CMainFrame::OnChkServer)
     ON_NOTIFY(LVN_ITEMCHANGED, IDC_LIST, &CMainFrame::OnListItemChanged)
     ON_MESSAGE(WM_INFERENCE_DONE, &CMainFrame::OnInferenceDone)
 END_MESSAGE_MAP()
@@ -85,29 +86,56 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpcs) {
     btn_rerun_.EnableWindow(FALSE);
     btn_export_.EnableWindow(FALSE);
 
-    // Build worker (loads ONNX models — takes ~300 ms).
+    // Server-mode checkbox (only enabled if the file exists on disk).
+    chk_server_.Create(_T("Server OCR (better Chinese, BUT ~100x slower — 60-90 s per image)"),
+                       WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+                       CRect(0, 0, 100, 24), this, IDC_CHK_SERVER);
+    chk_server_.SetFont(&ui_font_);
+
+    // Resolve all asset paths once; we'll swap cn model when the checkbox toggles.
     CString det_path     = FindAsset(_T("models\\omniparser-icon_detect-640.onnx"));
-    CString cn_rec_path  = FindAsset(_T("models\\ppocrv4_rec.onnx"));
+    CString mobile_path  = FindAsset(_T("models\\ppocrv4_rec.onnx"));
+    CString server_path  = FindAsset(_T("models\\ppocrv4_rec_server.onnx"));
     CString cn_dict_path = FindAsset(_T("models\\ppocr_keys_v1.txt"));
     CString en_rec_path  = FindAsset(_T("models\\en_ppocrv3_rec.onnx"));
     CString en_dict_path = FindAsset(_T("models\\en_dict.txt"));
 
+    detect_path_     = towstr(det_path);
+    mobile_cn_path_  = towstr(mobile_path);
+    server_cn_path_  = towstr(server_path);
+    en_path_         = towstr(en_rec_path);
     CT2A cn_dict_a(cn_dict_path, CP_UTF8);
     CT2A en_dict_a(en_dict_path, CP_UTF8);
-    Worker::AssetPaths paths;
-    paths.detect_model = towstr(det_path);
-    paths.cn_rec_model = towstr(cn_rec_path);
-    paths.cn_dict      = std::string((LPCSTR)cn_dict_a);
-    paths.en_rec_model = towstr(en_rec_path);
-    paths.en_dict      = std::string((LPCSTR)en_dict_a);
-    worker_ = std::make_unique<Worker>(this, paths);
-    if (!worker_->ready()) {
-        SetStatus(CString(_T("Init failed: ")) + Utf8ToCString(worker_->init_error()));
+    cn_dict_ = std::string((LPCSTR)cn_dict_a);
+    en_dict_ = std::string((LPCSTR)en_dict_a);
+
+    // Disable server checkbox if the server ONNX isn't downloaded.
+    if (!::PathFileExists(server_path)) {
+        chk_server_.EnableWindow(FALSE);
+        chk_server_.SetWindowText(_T("Server OCR model not downloaded (run fetch_ocr.ps1 -Server)"));
+    }
+
+    if (!RebuildWorker(false)) {
         btn_open_.EnableWindow(FALSE);
     } else {
         SetStatus(_T("Ready. Click 'Open image' to begin."));
     }
     return 0;
+}
+
+bool CMainFrame::RebuildWorker(bool use_server) {
+    Worker::AssetPaths paths;
+    paths.detect_model = detect_path_;
+    paths.cn_rec_model = use_server ? server_cn_path_ : mobile_cn_path_;
+    paths.cn_dict      = cn_dict_;
+    paths.en_rec_model = en_path_;
+    paths.en_dict      = en_dict_;
+    worker_ = std::make_unique<Worker>(this, paths);
+    if (!worker_->ready()) {
+        SetStatus(CString(_T("Init failed: ")) + Utf8ToCString(worker_->init_error()));
+        return false;
+    }
+    return true;
 }
 
 void CMainFrame::OnSize(UINT nType, int cx, int cy) {
@@ -136,7 +164,34 @@ void CMainFrame::Layout() {
     if (btn_open_.GetSafeHwnd())   { btn_open_.MoveWindow(bx, by, bw, bh);   bx += bw + 8; }
     if (btn_rerun_.GetSafeHwnd())  { btn_rerun_.MoveWindow(bx, by, bw, bh);  bx += bw + 8; }
     if (btn_export_.GetSafeHwnd()) { btn_export_.MoveWindow(bx, by, bw, bh); bx += bw + 16; }
+    if (chk_server_.GetSafeHwnd()) { chk_server_.MoveWindow(bx, by, 450, bh); bx += 450 + 12; }
     if (status_.GetSafeHwnd())     { status_.MoveWindow(bx, by, rc.Width() - bx - margin, bh); }
+}
+
+void CMainFrame::OnChkServer() {
+    if (busy_) {
+        // Don't allow toggling during inference; revert visual state.
+        chk_server_.SetCheck(chk_server_.GetCheck() ? BST_UNCHECKED : BST_CHECKED);
+        return;
+    }
+    bool use_server = (chk_server_.GetCheck() == BST_CHECKED);
+    SetStatus(use_server ? _T("Loading server OCR model...")
+                         : _T("Loading mobile OCR model..."));
+    btn_open_.EnableWindow(FALSE);
+    btn_rerun_.EnableWindow(FALSE);
+    btn_export_.EnableWindow(FALSE);
+    chk_server_.EnableWindow(FALSE);
+
+    bool ok = RebuildWorker(use_server);
+
+    chk_server_.EnableWindow(::PathFileExists(server_cn_path_.c_str()));
+    btn_open_.EnableWindow(ok);
+    btn_rerun_.EnableWindow(ok && !last_image_path_.empty());
+    btn_export_.EnableWindow(ok && current_ && !current_->boxes.empty());
+    if (ok) {
+        SetStatus(use_server ? _T("Switched to server model. Re-run image to apply.")
+                             : _T("Switched to mobile model. Re-run image to apply."));
+    }
 }
 
 void CMainFrame::SetStatus(const CString& s) {

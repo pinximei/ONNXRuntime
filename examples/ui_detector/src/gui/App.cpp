@@ -19,7 +19,7 @@ BOOL CDetectApp::InitInstance() {
 
     auto* frame = new CMainFrame();
     if (!frame->Create(nullptr, _T("UI Detector — Screenshot Element Recognizer"),
-                       WS_OVERLAPPEDWINDOW, CRect(0, 0, 1280, 800))) {
+                       WS_OVERLAPPEDWINDOW, CRect(0, 0, 1400, 820))) {
         return FALSE;
     }
     m_pMainWnd = frame;

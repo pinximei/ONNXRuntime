@@ -20,10 +20,16 @@ static void print_usage(const char* argv0) {
         "Usage: " << argv0 << " [options] IMAGE\n"
         "\n"
         "  --model PATH     Detector ONNX. Default: models/omniparser-icon_detect-640.onnx\n"
-        "  --rec PATH       Chinese rec ONNX. Default: models/ppocrv4_rec.onnx\n"
+        "  --rec PATH       Chinese rec ONNX. Default: models/ppocrv4_rec.onnx (mobile)\n"
         "  --dict PATH      Chinese char dict. Default: models/ppocr_keys_v1.txt\n"
         "  --rec-en PATH    English rec ONNX. Default: models/en_ppocrv3_rec.onnx\n"
         "  --dict-en PATH   English char dict. Default: models/en_dict.txt\n"
+        "  --server         Use PP-OCRv4 server cn model (~86 MB, slightly better at\n"
+        "                   look-alike Chinese characters like 未/末, 投/技, 版/贩).\n"
+        "                   WARNING: ~100x slower on consumer CPUs (single box ~2 s,\n"
+        "                   a 30-box screenshot can take 60-90 s). Use sparingly.\n"
+        "                   Needs models/ppocrv4_rec_server.onnx — run\n"
+        "                   scripts\\fetch_ocr.ps1 -Server to download.\n"
         "  --no-ocr         Skip OCR (detection only)\n"
         "  --conf F         Detection confidence threshold (default 0.05)\n"
         "  --iou  F         Detection NMS IoU threshold (default 0.50)\n"
@@ -60,6 +66,7 @@ int main(int argc, char** argv) {
         else if (a == "--dict")     dict_path     = next("--dict");
         else if (a == "--rec-en")   rec_en_path   = next("--rec-en");
         else if (a == "--dict-en")  dict_en_path  = next("--dict-en");
+        else if (a == "--server")   rec_path      = "models/ppocrv4_rec_server.onnx";
         else if (a == "--no-ocr")   do_ocr        = false;
         else if (a == "--conf")     opt.conf_threshold = std::stof(next("--conf"));
         else if (a == "--iou")      opt.iou_threshold  = std::stof(next("--iou"));

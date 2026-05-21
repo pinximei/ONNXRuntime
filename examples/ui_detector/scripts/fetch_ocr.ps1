@@ -1,4 +1,9 @@
 # Download PP-OCRv4 recognition ONNX + character dictionary.
+# Pass -Server to also fetch the larger PP-OCRv4 server model (~86 MB)
+# for higher Chinese accuracy at ~3x lower throughput.
+param(
+    [switch]$Server
+)
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot   # examples\ui_detector
@@ -35,6 +40,16 @@ $files = @(
         )
     }
 )
+
+if ($Server) {
+    $files += @{
+        name = "ppocrv4_rec_server.onnx"
+        urls = @(
+            "https://huggingface.co/SWHL/RapidOCR/resolve/main/PP-OCRv4/ch_PP-OCRv4_rec_server_infer.onnx",
+            "https://hf-mirror.com/SWHL/RapidOCR/resolve/main/PP-OCRv4/ch_PP-OCRv4_rec_server_infer.onnx"
+        )
+    }
+}
 
 foreach ($f in $files) {
     $target = Join-Path $dest $f.name

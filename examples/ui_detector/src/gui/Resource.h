@@ -7,6 +7,7 @@
 #define IDC_BTN_RERUN        1004
 #define IDC_BTN_EXPORT       1005
 #define IDC_STATUS           1006
+#define IDC_CHK_SERVER       1007
 
 // Custom message: worker thread -> UI when inference finishes.
 #define WM_INFERENCE_DONE    (WM_APP + 1)

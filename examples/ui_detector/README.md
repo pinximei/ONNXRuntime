@@ -90,9 +90,23 @@ Measured on a 1920×1080 desktop screenshot, CPU only:
 | OCR (36 boxes, ~23 ms/box) | ~830 ms |
 | **End-to-end** | **~1 s** |
 
+## Optional: server OCR model
+
+For higher Chinese accuracy on look-alike characters (`未/末`, `投/技`, `版/贩`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\fetch_ocr.ps1 -Server
+```
+
+Then either:
+- CLI: `detect.exe --server screenshot.png`
+- GUI: tick the "Server OCR" checkbox
+
+**Performance warning**: the server model is ~86 MB on disk but ~100× slower than mobile on a consumer CPU using stock onnxruntime — a 30-box screenshot takes 60-90 seconds (vs ~1 second with mobile). Vendor benchmarks (~3× slower) were measured on Xeon Platinum + MKL; we don't see that. Use it only when accuracy matters more than speed.
+
 ## Known limitations
 
-- **Identical-looking characters**: PP-OCRv4 mobile occasionally swaps look-alike Chinese characters under small font sizes — `未→末`, `投→技`, `版→贩`. Upgrading to PaddleOCR's server-size model (~90 MB) cuts this by ~3-5 % but slows OCR ~2×.
+- **Identical-looking characters**: PP-OCRv4 mobile occasionally swaps look-alike Chinese characters under small font sizes — `未→末`, `投→技`, `版→贩`. The server model fixes most of these but at the speed cost above.
 - **Favicon contamination**: When a detection box surrounds a tab label *and* its favicon, the OCR may read the favicon as a character (` 探索未..`, `C DeepSeek`). True fix would be to run a text-detection pass *inside* each detected box.
 - **No widget-type classification**: OmniParser only outputs one class ("interactive element"). To distinguish "button" vs "input" vs "checkbox", you would need a second classifier or rule-based heuristics on top.
 
